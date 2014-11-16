@@ -1,0 +1,18 @@
+{
+    "name": "garotosopa/aduanizer",
+    "description": "Import and export tool to migrate specific rows and their related data.",
+    "authors": [
+        {
+            "name": "Diogo Galvão",
+            "email": "diogo86@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {"Aduanizer\\": "src\\Aduanizer"}
+    },
+    "require": {
+    },
+    "require-dev": {
+        "phpunit/phpunit": "4.3.*"
+    }
+}
