@@ -53,7 +53,7 @@ Example map.yml:
     - [user_id, date]
 ```
 
-Then you need a configuration file with database parameters.
+Then you need a `configuration` file with database parameters.
 
 Example production.yml:
 
@@ -70,6 +70,8 @@ table and the criteria to be used:
 ```
 bin/aduanizer -e "book.year=2014" -a production.yml -m map.yml -o books-2014.yml
 ```
+
+This should export all books from year 2014 along with their authors and reviews.
 
 ### Importing data
 
@@ -88,3 +90,5 @@ dsn: mysql:dbname=myproject;host=192.168.56.101
 ```
 bin/aduanizer -i books-2014.yml -a staging.yml -m map.yml
 ```
+
+This should import into the staging database all books from 2014 that have been previously exported from production. Existing rows with the same unique keys are skipped, according to the map file. Also all imported reviews will appear to be from user 1, as per the map definition. This might be specially useful to omit personal information, or to avoid importing unecessary relationships.
