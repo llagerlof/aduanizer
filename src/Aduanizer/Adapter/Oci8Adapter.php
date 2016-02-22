@@ -27,7 +27,10 @@ class Oci8Adapter extends Adapter
 
         if (!$this->conn) {
             $error = oci_error();
-            throw new Exception("Could not connect to {$this->settings['connectionString']}: " . $error['message']);
+            return $this->onError(
+                "Could not connect to {$this->settings['connectionString']}",
+                $error
+            );
         }
 
         $this->setupDateFormat('yyyy-mm-dd', 'yyyy-mm-dd hh24:mi:ss');
@@ -36,10 +39,20 @@ class Oci8Adapter extends Adapter
     protected function setupDateFormat($dateFormat, $timestampFormat)
     {
         $stmtDateFormat = oci_parse($this->conn, "ALTER SESSION SET NLS_DATE_FORMAT = '$dateFormat'");
-        $this->execute($stmtDateFormat);
+        $success = $this->execute($stmtDateFormat);
+
+        if (!$success) {
+            $error = oci_error($stmtDateFormat);
+            return $this->onError("Could not set date format", $error);
+        }
 
         $stmtTimestampFormat = oci_parse($this->conn, "ALTER SESSION SET NLS_TIMESTAMP_FORMAT = '$timestampFormat'");
-        $this->execute($stmtTimestampFormat);
+        $success = $this->execute($stmtTimestampFormat);
+
+        if (!$success) {
+            $error = oci_error($stmtTimestampFormat);
+            return $this->onError("Could not set timestamp format", $error);
+        }
     }
 
     protected function getRowsImpl(Table $table, $query, array $params)
@@ -47,14 +60,34 @@ class Oci8Adapter extends Adapter
         $sql = $this->getSelectSql($table, $query);
         $statement = oci_parse($this->conn, $sql);
 
-        foreach ($params as $placeHolder => $value) {
-            oci_bind_by_name($statement, $placeHolder, $params[$placeHolder]);
+        if (!$statement) {
+            $error = oci_error($this->conn);
+            return $this->onError("Could not parse select", $error);
         }
 
-        $this->execute($statement);
+        foreach ($params as $placeHolder => $value) {
+            $success = oci_bind_by_name($statement, $placeHolder, $params[$placeHolder]);
+
+            if (!$success) {
+                $error = oci_error($statement);
+                return $this->onError("Could not bind '$placeHolder'", $error);
+            }
+        }
+
+        $success = $this->execute($statement);
+
+        if (!$success) {
+            $error = oci_error($statement);
+            return $this->onError("Could not execute select", $error);
+        }
 
         $rows = array();
-        oci_fetch_all($statement, $rows, 0, -1, OCI_FETCHSTATEMENT_BY_ROW + OCI_ASSOC);
+        $total = oci_fetch_all($statement, $rows, 0, -1, OCI_FETCHSTATEMENT_BY_ROW + OCI_ASSOC);
+
+        if ($total === false) {
+            $error = oci_error($statement);
+            return $this->onError("Could not fetch rows", $error);
+        }
 
         foreach ($rows as $i => $row) {
             $rows[$i] = array_change_key_case($row, CASE_LOWER);
@@ -86,15 +119,35 @@ class Oci8Adapter extends Adapter
         $sql = $this->getInsertSql($table, $row);
         $statement = oci_parse($this->conn, $sql);
 
+        if (!$statement) {
+            $error = oci_error($this->conn);
+            return $this->onError("Could not parse insert", $error);
+        }
+
         foreach (array_keys($row) as $i => $column) {
-            oci_bind_by_name($statement, ":$i", $row[$column]);
+            $success = oci_bind_by_name($statement, ":$i", $row[$column]);
+
+            if (!$success) {
+                $error = oci_error($statement);
+                return $this->onError("Could not bind '$column'", $error, $row);
+            }
         }
 
         if ($idGeneration->isReturning()) {
-            oci_bind_by_name($statement, ":returningPk", $row[$table->getPrimaryKey()], strlen(PHP_INT_MAX));
+            $success = oci_bind_by_name($statement, ":returningPk", $row[$table->getPrimaryKey()], strlen(PHP_INT_MAX));
+
+            if (!$success) {
+                $error = oci_error($statement);
+                return $this->onError("Could not bind 'returningPk'", $error, $row);
+            }
         }
 
-        $this->execute($statement);
+        $success = $this->execute($statement);
+
+        if (!$success) {
+            $error = oci_error($statement);
+            return $this->onError("Could not execute insert", $error, $row);
+        }
 
         if ($table->hasPrimaryKey()) {
             return $row[$table->getPrimaryKey()];
@@ -131,9 +184,22 @@ class Oci8Adapter extends Adapter
         $mode = $this->autoCommit ? OCI_COMMIT_ON_SUCCESS : OCI_NO_AUTO_COMMIT;
         $success = oci_execute($statement, $mode);
 
-        if (!$success) {
-            throw new Exception("Could not execute statement: " . oci_error($this->conn));
-        }
+        return $success;
+    }
+
+    protected function onError($msg, array $oci_error, $data = null)
+    {
+        throw new Exception(
+            sprintf(
+                "%s\nOCI Error: %s - %s @ offset %d\nSQL: %s\nData: %s",
+                $msg,
+                $oci_error['code'],
+                $oci_error['message'],
+                $oci_error['offset'],
+                $oci_error['sqltext'],
+                serialize($data)
+            )
+        );
     }
 
     protected function getNextVal(Table $table)
