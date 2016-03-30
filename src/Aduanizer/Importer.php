@@ -50,16 +50,34 @@ class Importer
             }
 
             $foreignKey = $this->importRow($register, $dataBag, $foreignTableName, $row[$column]);
+
+            if ($foreignKey === null) {
+                throw new Exception(
+                    sprintf(
+                        "Foreign row %s.%s should have returned its primary key",
+                        $tableName,
+                        $foreignTableName
+                    )
+                );
+            }
+
             $row[$column] = $foreignKey;
         }
 
         $existing = $this->findExistingRow($table, $row);
 
         if ($existing) {
-            $databaseId = $existing[$primaryKey];
+            $databaseId = $this->fetchRowId($table, $existing);
             $register->addReused($tableName, $bagId, $databaseId);
         } else {
-            $databaseId = $this->adapter->insert($table, $row);
+            $insertedId = $this->adapter->insert($table, $row);
+
+            if ($primaryKey) {
+                $databaseId = $insertedId;
+            } else {
+                $databaseId = $this->fetchRowId($table, $row);
+            }
+
             $register->addImported($tableName, $bagId, $databaseId);
         }
 
@@ -69,7 +87,9 @@ class Importer
 
         $dataBag->add($tableName, $bagId, $row);
 
-        return $databaseId;
+        if ($primaryKey) {
+            return $databaseId;
+        }
     }
 
     public function findExistingRow(Table $table, array $row)
@@ -87,5 +107,51 @@ class Importer
                 return $existing[0];
             }
         }
+    }
+
+    /**
+     * Returns a value that uniquely identifies the row within this table, so
+     * that the row isn't inserted multiple times during import.
+     *
+     * Best case scenario this is the primary key, but could also be the first
+     * unique key in case this table has no primary key. If none of these are
+     * available then all values are concatenated and a hash is returned.
+     *
+     * @param array $row
+     * @return string|int
+     */
+    public function fetchRowId(Table $table, array $row)
+    {
+        // The table has a primary key so we use it straight away.
+        if ($table->getPrimaryKey()) {
+            return $row[$table->getPrimaryKey()];
+        }
+
+        // There's no primary key so we try to concat all column names and
+        // values from the first unique key.
+        if ($table->getUniqueKeys()) {
+            $concat = null;
+            $uniqueKeys = $table->getUniqueKeys();
+            $firstUniqueKeyColumns = $uniqueKeys[0];
+
+            foreach ($firstUniqueKeyColumns as $column) {
+                $concat .= $column . $row[$column];
+            }
+
+            return $concat;
+        }
+
+        // There are no suitable keys so we concat values from all columns to
+        // generate a hash that represents this row. This cannot be used to
+        // find this exact row in the table again but it's useful during import
+        // to avoid inserting the same data multiple times.
+        // FIXME: unless it's supposed to be?
+        $concat = null;
+
+        foreach ($row as $column => $value) {
+            $string .= $column . $value;
+        }
+
+        return md5($concat);
     }
 }
