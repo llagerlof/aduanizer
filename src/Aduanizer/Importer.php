@@ -149,7 +149,7 @@ class Importer
         $concat = null;
 
         foreach ($row as $column => $value) {
-            $string .= $column . $value;
+            $concat .= $column . $value;
         }
 
         return md5($concat);
