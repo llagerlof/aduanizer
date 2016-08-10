@@ -76,6 +76,8 @@ class Table
 
     public function setUniqueKeys(array $uniqueKeys)
     {
+        $this->uniqueKeys = array();
+
         foreach ($uniqueKeys as $columns) {
             if (is_array($columns)) {
                 $this->addUniqueKey($columns);
@@ -97,6 +99,8 @@ class Table
 
     public function setForeignKeys(array $foreignKeys)
     {
+        $this->foreignKeys = array();
+
         foreach ($foreignKeys as $column => $tableName) {
             $this->addForeignKey($column, $tableName);
         }
@@ -119,6 +123,8 @@ class Table
 
     public function setChildren(array $children)
     {
+        $this->children = array();
+
         foreach ($children as $tableName => $column) {
             $this->addChild($tableName, $column);
         }
@@ -136,6 +142,8 @@ class Table
 
     public function setExcludes(array $excludes)
     {
+        $this->excludes = array();
+
         foreach ($excludes as $column) {
             $this->exclude($column);
         }
@@ -148,6 +156,8 @@ class Table
 
     public function setReplace(array $replace)
     {
+        $this->replace = array();
+
         foreach ($replace as $column => $replacement) {
             $this->addReplace($column, $replacement);
         }
