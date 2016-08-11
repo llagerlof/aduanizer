@@ -26,10 +26,13 @@ Configuration files
   -o  output data to the specified file
 ```
 
-## Exporting data
+## Usage
 
-You first need a `map` file describing the database relationships of the data
-that's about to be exported.
+The example below exports from a production database all books from the year 2014 into an YML file, then imports this file into another database used in an staging environment.
+
+### Mapping tables
+
+The first step is to create a `map` file describing the database relationships between the tables that are going to the be exported.
 
 Example map.yml:
 
@@ -47,12 +50,53 @@ Example map.yml:
     - [country_id, name]
 
 - table: review
-  replace:
-    user_id: 1
+  foreignKeys:
+    user_id: user
+  replaceCode:
+    description: return substr($review['description'], 0, 2000);
   uniqueKeys:
     - [user_id, date]
+
+- table: user
+  replace:
+    address_id: null
+    email: aduanizer@example.com
+
 ```
 
+The map file is a list of tables with the following parameters:
+
+#### table
+
+The table name.
+
+#### uniqueKeys
+
+List of column names that uniquely identifies each row. Compound unique keys are defined in a list.
+
+#### foreignKeys
+
+Map of column names that are foreign keys pointing to their respective table names.
+
+#### children
+
+Map of table names with related rows pointing to the column name on the foreign table.
+
+#### replace
+
+Map of column names pointing to a string that should replace the actual value.
+
+During export, the replacement string gets outputed to the export file, regardless of the actual value on the database. During import, the replacement string is insert into the database, regardless of the actual value on the export file.
+
+#### replaceCode
+
+Map of column names pointing to a PHP code that's going to be used inside a callback function.
+
+The function in which this code is used accepts only one parameter named the same as the table name. When this function gets called it's passed an array representing the row being processed, indexed by the column names. It must return a replacement string for the
+
+ replaces user emails with a fake address, according to `replace` param in the `user` table. Also, book reviews are limited to 2000 characters, according to `replaceCode` param in the `review` table. This code is compiled into a PHP function that takes a single argument named the same as the table and is passed the array representing the row being processed.
+
+Also all users from reviews  will appear to be have a fake e-mail address, as per the map definition. This might be specially useful to omit personal information, or to avoid importing unecessary relationships. The review descriptions
 Then you need a `configuration` file with database parameters.
 
 Example production.yml:
@@ -91,4 +135,3 @@ dsn: mysql:dbname=myproject;host=192.168.56.101
 bin/aduanizer -i books-2014.yml -a staging.yml -m map.yml
 ```
 
-This should import into the staging database all books from 2014 that have been previously exported from production. Existing rows with the same unique keys are skipped, according to the map file. Also all imported reviews will appear to be from user 1, as per the map definition. This might be specially useful to omit personal information, or to avoid importing unecessary relationships.
