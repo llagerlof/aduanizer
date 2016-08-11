@@ -40,6 +40,14 @@ abstract class Adapter
             }
         }
 
+        foreach ($table->getReplaceFunction() as $column => $function) {
+            foreach ($rows as $i => $row) {
+                if (array_key_exists($column, $row)) {
+                    $rows[$i][$column] = call_user_func($function, $rows[$i]);
+                }
+            }
+        }
+
         if (isset($this->settings['outputStringFilter'])) {
             foreach ($rows as $i => $row) {
                 $rows[$i] = $this->stringFilter($this->settings['outputStringFilter'], $row);
@@ -58,6 +66,12 @@ abstract class Adapter
         foreach ($table->getReplace() as $column => $replacedValue) {
             if (array_key_exists($column, $row)) {
                 $row[$column] = $replacedValue;
+            }
+        }
+
+        foreach ($table->getReplaceFunction() as $column => $function) {
+            if (array_key_exists($column, $row)) {
+                $row[$column] = call_user_func($function, $row);
             }
         }
 

@@ -20,6 +20,7 @@ class MapFactory
         'uniqueKeys',
         'exclude',
         'replace',
+        'replaceCode',
         'foreignKeys',
         'children',
     );
@@ -114,6 +115,22 @@ class MapFactory
 
         if (isset($params['replace'])) {
             $table->setReplace($params['replace']);
+        }
+
+        if (isset($params['replaceCode'])) {
+            if (!is_array($params['replaceCode'])) {
+                throw new Exception("Invalid replaceCode param for table $tableName. It should be an array.");
+            }
+
+            foreach ($params['replaceCode'] as $column => $code) {
+                $function = create_function("\$$tableName", $code);
+
+                if (!$function) {
+                    throw new Exception("Could not create replace function for $tableName.$column.");
+                }
+
+                $table->addReplaceFunction($column, $function);
+            }
         }
 
         if (isset($params['foreignKeys'])) {

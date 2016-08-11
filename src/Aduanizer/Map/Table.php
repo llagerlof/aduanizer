@@ -13,6 +13,7 @@ class Table
     protected $children = array();
     protected $excludes = array();
     protected $replace = array();
+    protected $replaceFunction = array();
 
     public function __construct($name)
     {
@@ -171,5 +172,24 @@ class Table
     public function getReplace()
     {
         return $this->replace;
+    }
+
+    public function setReplaceFunction(array $replaceFunction)
+    {
+        $this->replaceFunction = array();
+
+        foreach ($replaceFunction as $column => $function) {
+            $this->addReplaceFunction($column, $function);
+        }
+    }
+
+    public function addReplaceFunction($column, $function)
+    {
+        $this->replaceFunction[$column] = $function;
+    }
+
+    public function getReplaceFunction()
+    {
+        return $this->replaceFunction;
     }
 }
