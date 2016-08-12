@@ -1,9 +1,7 @@
 aduanizer
 =========
 
-Aduanizer is an import and export tool to migrate specific rows and their
-related data across databases. It was specifically created to help populating
-an staging environment with a subset of real data from production.
+Aduanizer is an import and export tool for migrating specific rows and their related data across databases. It was specifically created to help populating an staging environment with a subset of real data from production.
 
 ## Getting started
 
@@ -26,15 +24,15 @@ Configuration files
   -o  output data to the specified file
 ```
 
-## Usage
+## Basic usage
 
 The example below exports from a production database all books from the year 2014 into an YML file, then imports this file into another database used in an staging environment.
 
 ### Mapping tables
 
-The first step is to create a `map` file describing the database relationships between the tables that are going to the be exported.
+The first step is to create a `map` file describing the database relationships between the tables that are going to be exported.
 
-Example map.yml:
+This is the file `map.yml` for this example:
 
 ```
 - table: book
@@ -51,32 +49,48 @@ Example map.yml:
 
 - table: review
   foreignKeys:
+    book_id: book
     user_id: user
   replaceCode:
     description: return substr($review['description'], 0, 2000);
   uniqueKeys:
-    - [user_id, date]
+    - [book_id, user_id, date]
 
 - table: user
+  uniqueKeys:
+    - username
+  excludes: address_id
   replace:
-    address_id: null
     email: aduanizer@example.com
-
 ```
 
-The map file is a list of tables with the following parameters:
+A common map file consists of a list of table definitions with the following parameters:
 
 #### table
 
-The table name.
+The table name. This is the only required parameter in a table definition.
+
+In the above example, tables `book`, `author`, `review` and `user` will be available for processing.
 
 #### uniqueKeys
 
-List of column names that uniquely identifies each row. Compound unique keys are defined in a list.
+List of column names that uniquely identifies each row. Compound unique keys are defined using a list.
+
+Although not required, this parameter plays a critical role preventing duplicates: before inserting a row, the table in the destination database is queried by all defined unique keys, so when an existing row is found it's not inserted again.
+
+This is already expected from real database unique keys. But unique keys defined in the map file does not necessarily need to exist as real keys. This is specially useful to avoid duplicates while exporting data from production into a testing database multiple times, either directly or as a relationship from another migration.
+
+In the above example, assuming ISBN is a real unique key in the database, a book with the same ISBN could not be inserted twice even if `isbn` wasn't defined in `uniqueKeys`. If tried to insert it, the query would fail. Thus defining it in the map file just prevents an error. However, in the review example, the compound key `[book_id, user_id, date]` prevents that a user review from a book on a specific date isn't inserted twice, even though such criteria may not exist as a unique key in the database.
+
+Just like `uniqueKeys` don't need to exist as real unique keys, not all real unique keys need to be specified in the map file when just one of them would suffice on the intended usage.
+
+Multiple unique keys can be specified in a table and each one of them are queried separately, in the order they are defined. Columns in a compound unique key are queried together in the same criteria.
+
+**Important note:** by the time of this writing, in case a row is found in the destination database when queried by one of its unique keys during import, no other column is updated either.
 
 #### foreignKeys
 
-Map of column names that are foreign keys pointing to their respective table names.
+Map of column names that are foreign keys pointing to their respective table names. In this case, the related table must also be defined in the map file.
 
 #### children
 
@@ -86,7 +100,7 @@ Map of table names with related rows pointing to the column name on the foreign 
 
 Map of column names pointing to a string that should replace the actual value.
 
-During export, the replacement string gets outputed to the export file, regardless of the actual value on the database. During import, the replacement string is insert into the database, regardless of the actual value on the export file.
+During export, the replacement string gets outputted to the export file, regardless of the actual value on the database. During import, the replacement string is insert into the database, regardless of the actual value on the export file.
 
 #### replaceCode
 
@@ -94,9 +108,9 @@ Map of column names pointing to a PHP code that's going to be used inside a call
 
 The function in which this code is used accepts only one parameter named the same as the table name. When this function gets called it's passed an array representing the row being processed, indexed by the column names. It must return a replacement string for the
 
- replaces user emails with a fake address, according to `replace` param in the `user` table. Also, book reviews are limited to 2000 characters, according to `replaceCode` param in the `review` table. This code is compiled into a PHP function that takes a single argument named the same as the table and is passed the array representing the row being processed.
+ replaces user emails with a fake address, according to `replace` parameter in the `user` table. Also, book reviews are limited to 2000 characters, according to `replaceCode` parameter in the `review` table. This code is compiled into a PHP function that takes a single argument named the same as the table and is passed the array representing the row being processed.
 
-Also all users from reviews  will appear to be have a fake e-mail address, as per the map definition. This might be specially useful to omit personal information, or to avoid importing unecessary relationships. The review descriptions
+Also all users from reviews  will appear to be have a fake e-mail address, as per the map definition. This might be specially useful to omit personal information, or to avoid importing unnecessary relationships. The review descriptions
 Then you need a `configuration` file with database parameters.
 
 Example production.yml:
