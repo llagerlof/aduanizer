@@ -9,7 +9,8 @@ class ImportRegister
 
     public function contains($tableName, $bagId)
     {
-        return isset($this->reused[$tableName][$bagId]) || isset($this->imported[$tableName][$bagId]);
+        return isset($this->reused[$tableName][$bagId])
+            || isset($this->imported[$tableName][$bagId]);
     }
 
     public function getDatabaseId($tableName, $bagId)

@@ -21,7 +21,10 @@ abstract class Adapter
         $params = $criteria->getParams();
 
         if (isset($this->settings['inputStringFilter'])) {
-            $params = $this->stringFilter($this->settings['inputStringFilter'], $params);
+            $params = $this->stringFilter(
+                $this->settings['inputStringFilter'],
+                $params
+            );
         }
 
         $rows = $this->getRowsImpl($table, $query, $params);
@@ -50,7 +53,10 @@ abstract class Adapter
 
         if (isset($this->settings['outputStringFilter'])) {
             foreach ($rows as $i => $row) {
-                $rows[$i] = $this->stringFilter($this->settings['outputStringFilter'], $row);
+                $rows[$i] = $this->stringFilter(
+                    $this->settings['outputStringFilter'],
+                    $row
+                );
             }
         }
 
@@ -76,7 +82,10 @@ abstract class Adapter
         }
 
         if (isset($this->settings['inputStringFilter'])) {
-            $row = $this->stringFilter($this->settings['inputStringFilter'], $row);
+            $row = $this->stringFilter(
+                $this->settings['inputStringFilter'],
+                $row
+            );
         }
 
         return $this->insertImpl($table, $row);
@@ -94,7 +103,11 @@ abstract class Adapter
 
     abstract protected function init();
 
-    abstract protected function getRowsImpl(Table $table, $query, array $params);
+    abstract protected function getRowsImpl(
+        Table $table,
+        $query,
+        array $params
+    );
 
     abstract protected function insertImpl(Table $table, array $row);
 

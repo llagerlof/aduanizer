@@ -38,7 +38,11 @@ class MapFactory
 
     public function getDefaultPrimaryKeyForTable(Table $table)
     {
-        return str_replace('{tableName}', $table->getName(), $this->defaults['primaryKey']);
+        return str_replace(
+            '{tableName}',
+            $table->getName(),
+            $this->defaults['primaryKey']
+        );
     }
 
     public function getDefaultSequenceForTable(Table $table)
@@ -84,12 +88,13 @@ class MapFactory
         }
 
         if (isset($params['idGeneration'])) {
-            $table->setIdGeneration(new IdGeneration($params['idGeneration']));
+            $idGeneration = new IdGeneration($params['idGeneration']);
         } elseif (isset($params['sequence'])) {
-            $table->setIdGeneration(new IdGeneration('sequence'));
+            $idGeneration = new IdGeneration('sequence');
         } else {
-            $table->setIdGeneration(new IdGeneration($this->defaults['idGeneration']));
+            $idGeneration = new IdGeneration($this->defaults['idGeneration'])
         }
+        $table->setIdGeneration($idGeneration);
 
         if ($table->getIdGeneration()->isSequence()) {
             if (isset($params['sequence'])) {
@@ -98,7 +103,9 @@ class MapFactory
                 $table->setSequence($this->getDefaultSequenceForTable($table));
             }
         } elseif (isset($params['sequence'])) {
-            throw new Exception("Extraneous sequence parameter for table $tableName.");
+            throw new Exception(
+                "Extraneous sequence parameter for table $tableName."
+            );
         }
 
         if (isset($params['uniqueKeys'])) {
@@ -119,14 +126,20 @@ class MapFactory
 
         if (isset($params['replaceCode'])) {
             if (!is_array($params['replaceCode'])) {
-                throw new Exception("Invalid replaceCode param for table $tableName. It should be an array.");
+                throw new Exception(
+                    "Invalid replaceCode param for table $tableName. " .
+                    "It should be an array."
+                );
             }
 
             foreach ($params['replaceCode'] as $column => $code) {
                 $function = create_function("\$$tableName", $code);
 
                 if (!$function) {
-                    throw new Exception("Could not create replace function for $tableName.$column.");
+                    throw new Exception(
+                        "Could not create replace function for " .
+                        "$tableName.$column."
+                    );
                 }
 
                 $table->addReplaceFunction($column, $function);
