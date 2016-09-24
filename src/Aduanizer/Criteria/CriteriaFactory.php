@@ -5,7 +5,8 @@ namespace Aduanizer\Criteria;
 class CriteriaFactory
 {
     /**
-     * Factory a criteria to match rows having columns with the specified values.
+     * Factory a criteria to match rows having columns with the specified
+     * values.
      * 
      * @param array $criteriaParams
      * @return Criteria
@@ -45,7 +46,9 @@ class CriteriaFactory
         $criteriaParams = array();
 
         foreach ($columns as $columnName) {
-            $criteriaParams[$columnName] = isset($row[$columnName]) ? $row[$columnName] : null;
+            $criteriaParams[$columnName] = isset($row[$columnName])
+                                         ? $row[$columnName]
+                                         : null;
         }
 
         return $this->factory($criteriaParams);

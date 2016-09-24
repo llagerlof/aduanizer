@@ -14,15 +14,21 @@ class Exporter
     protected $map;
     protected $criteriaFactory;
 
-    public function __construct(Adapter $adapter, Map $map, CriteriaFactory $criteriaFactory)
-    {
+    public function __construct(
+        Adapter $adapter,
+        Map $map,
+        CriteriaFactory $criteriaFactory
+    ) {
         $this->adapter = $adapter;
         $this->map = $map;
         $this->criteriaFactory = $criteriaFactory;
     }
 
-    public function exportTable(DataBag $dataBag, Table $table, Criteria $criteria)
-    {
+    public function exportTable(
+        DataBag $dataBag,
+        Table $table,
+        Criteria $criteria
+    ) {
         $tableName = $table->getName();
         $primaryKey = $table->getPrimaryKey();
 
@@ -30,7 +36,9 @@ class Exporter
 
         foreach ($rows as $row) {
             if ($primaryKey && !isset($row[$primaryKey])) {
-                throw new Exception("Missing primary key column $primaryKey on $tableName row.");
+                throw new Exception(
+                    "Missing primary key column $primaryKey on $tableName row."
+                );
             }
             
             $id = $primaryKey ? $row[$primaryKey] : null;
@@ -41,17 +49,24 @@ class Exporter
         }
     }
 
-    public function exportForeignKeys(DataBag $dataBag, Table $table, array $row)
-    {
+    public function exportForeignKeys(
+        DataBag $dataBag,
+        Table $table,
+        array $row
+    ) {
         foreach ($table->getForeignKeys() as $column => $foreignTableName) {
             $foreignKey = $row[$column];
 
-            if (!$foreignKey || $dataBag->exists($foreignTableName, $foreignKey)) {
+            if (!$foreignKey
+                || $dataBag->exists($foreignTableName, $foreignKey)
+            ) {
                 continue;
             }
 
             $foreignTable = $this->map->getTable($foreignTableName);
-            $criteria = $this->criteriaFactory->factory(array($foreignTable->getPrimaryKey() => $foreignKey));
+            $criteria = $this->criteriaFactory->factory(
+                array($foreignTable->getPrimaryKey() => $foreignKey)
+            );
             $this->exportTable($dataBag, $foreignTable, $criteria);
         }
     }
@@ -65,12 +80,17 @@ class Exporter
             $id = $primaryKey ? $row[$primaryKey] : null;
 
             if (!$id) {
-                throw new Exception("Unable to export children of {$table->getName()} without its primary key.");
+                throw new Exception(
+                    "Unable to export children of {$table->getName()} " .
+                    "without its primary key."
+                );
             }
 
             foreach ($children as $childTableName => $column) {
                 $childTable = $this->map->getTable($childTableName);
-                $criteria = $this->criteriaFactory->factory(array($column => $id));
+                $criteria = $this->criteriaFactory->factory(
+                    array($column => $id)
+                );
                 $this->exportTable($dataBag, $childTable, $criteria);
             }
         }

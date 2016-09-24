@@ -16,9 +16,15 @@ class PDOAdapter extends Adapter
             throw new Exception("Required PDOAdapter params: dsn, username");
         }
 
-        $password = isset($this->settings['password']) ? $this->settings['password'] : null;
+        $password = isset($this->settings['password'])
+                  ? $this->settings['password']
+                  : null;
 
-        $this->pdo = new PDO($this->settings['dsn'], $this->settings['username'], $password);
+        $this->pdo = new PDO(
+            $this->settings['dsn'],
+            $this->settings['username'],
+            $password
+        );
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 
@@ -34,7 +40,9 @@ class PDOAdapter extends Adapter
     protected function getSelectSql(Table $table, $query)
     {
         $tableName = $table->getName();
-        $from = isset($this->settings['schema']) ? $this->settings['schema'] . '.' . $tableName : $tableName;
+        $from = isset($this->settings['schema'])
+              ? $this->settings['schema'] . '.' . $tableName
+              : $tableName;
         $where = $query == "" ? "" : "WHERE $query";
         $sql = "SELECT * FROM $from $where";
 
@@ -60,14 +68,18 @@ class PDOAdapter extends Adapter
         } elseif ($idGeneration->isAssigned()) {
             return $row[$table->getPrimaryKey()];
         } else {
-            throw new Exception("Unsupported id generation type: {$idGeneration->getType()}");
+            throw new Exception(
+                "Unsupported id generation type: {$idGeneration->getType()}"
+            );
         }
     }
 
     protected function getInsertSql(Table $table, array $row)
     {
         $tableName = $table->getName();
-        $into = isset($this->settings['schema']) ? $this->settings['schema'] . '.' . $tableName : $tableName;
+        $into = isset($this->settings['schema'])
+              ? $this->settings['schema'] . '.' . $tableName
+              : $tableName;
         $columns = implode(',', array_keys($row));
         $placeHolders = implode(',', array_fill(0, count($row), '?'));
 

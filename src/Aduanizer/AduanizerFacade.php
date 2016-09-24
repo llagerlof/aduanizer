@@ -22,8 +22,11 @@ class AduanizerFacade
         $this->targetParser = new TargetParser();
     }
 
-    public function export(array $adapterConfig, array $mapConfig, $targetString)
-    {
+    public function export(
+        array $adapterConfig,
+        array $mapConfig,
+        $targetString
+    ) {
         $adapter = $this->adapterFactory->factory($adapterConfig);
         $map = $this->mapFactory->factory($mapConfig);
         $target = $this->targetParser->parse($targetString);
@@ -40,8 +43,11 @@ class AduanizerFacade
         return $dataBag->getData();
     }
 
-    public function import(array $adapterConfig, array $mapConfig, array $data)
-    {
+    public function import(
+        array $adapterConfig,
+        array $mapConfig,
+        array $data
+    ) {
         $adapter = $this->adapterFactory->factory($adapterConfig);
         $map = $this->mapFactory->factory($mapConfig);
 

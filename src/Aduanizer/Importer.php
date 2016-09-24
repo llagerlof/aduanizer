@@ -13,8 +13,11 @@ class Importer
     protected $map;
     protected $criteriaFactory;
 
-    public function __construct(Adapter $adapter, Map $map, CriteriaFactory $criteriaFactory)
-    {
+    public function __construct(
+        Adapter $adapter,
+        Map $map,
+        CriteriaFactory $criteriaFactory
+    ) {
         $this->adapter = $adapter;
         $this->map = $map;
         $this->criteriaFactory = $criteriaFactory;
@@ -27,15 +30,22 @@ class Importer
         }
     }
 
-    public function importTable(ImportRegister $register, DataBag $dataBag, $tableName)
-    {
+    public function importTable(
+        ImportRegister $register,
+        DataBag $dataBag,
+        $tableName
+    ) {
         foreach ($dataBag->getRows($tableName) as $bagId => $row) {
             $this->importRow($register, $dataBag, $tableName, $bagId);
         }
     }
 
-    public function importRow(ImportRegister $register, DataBag $dataBag, $tableName, $bagId)
-    {
+    public function importRow(
+        ImportRegister $register,
+        DataBag $dataBag,
+        $tableName,
+        $bagId
+    ) {
         if ($register->contains($tableName, $bagId)) {
             return $register->getDatabaseId($tableName, $bagId);
         }
@@ -49,15 +59,17 @@ class Importer
                 continue;
             }
 
-            $foreignKey = $this->importRow($register, $dataBag, $foreignTableName, $row[$column]);
+            $foreignKey = $this->importRow(
+                $register,
+                $dataBag,
+                $foreignTableName,
+                $row[$column]
+            );
 
             if ($foreignKey === null) {
                 throw new Exception(
-                    sprintf(
-                        "Foreign row %s.%s should have returned its primary key",
-                        $tableName,
-                        $foreignTableName
-                    )
+                    "Foreign row {$tableName}.{$foreignTableName} " .
+                    "should have returned its primary key"
                 );
             }
 
