@@ -92,7 +92,7 @@ class MapFactory
         } elseif (isset($params['sequence'])) {
             $idGeneration = new IdGeneration('sequence');
         } else {
-            $idGeneration = new IdGeneration($this->defaults['idGeneration'])
+            $idGeneration = new IdGeneration($this->defaults['idGeneration']);
         }
         $table->setIdGeneration($idGeneration);
 
